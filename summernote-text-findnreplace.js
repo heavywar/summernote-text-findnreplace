@@ -1,60 +1,105 @@
-/* https://github.com/DiemenDesign/summernote-pagebreak */
-(function(factory) {
-  if(typeof define === 'function' && define.amd) {
-    define(['jquery'], factory);
-  } else if (typeof module === 'object' && module.exports) {
-    module.exports = factory(require('jquery'));
-  } else {
-    factory(window.jQuery);
-  }
-}
-(function($) {
-  $.extend(true,$.summernote.lang, {
-    'en-US': {
-      pagebreak: {
-        tooltip: 'Page Break'
-      }
+(function (factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(['jquery'], factory);
+    } else if (typeof module === 'object' && module.exports) {
+        module.exports = factory(require('jquery'));
+    } else {
+        factory(window.jQuery);
     }
-  });
-  $.extend($.summernote.options, {
-    pagebreak: {
-      icon: '<i class="note-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 14 14" width="14" height="14"><path d="M 4,5.5 4,1 l 9,0 0,4.5 -0.750612,0 0,-3.74939 -7.498776,0 0,3.75061 L 4,5.50122 Z M 13,7.75061 13,13 4,13 4,7.75061 l 0.750612,0 0,4.5 7.5,0 0,-4.5 0.749388,0 z m -6,-1.5 1.5,0 L 8.5,7 7,7 7,6.25061 Z m -2.249388,0 1.5,0 0,0.74939 -1.5,0 0,-0.74939 z m 4.5,0 1.5,0 0,0.74939 -1.5,0 0,-0.74939 z m 2.249388,0 1.5,0 L 13,7 11.5,7 11.5,6.25061 Z M 1,4.37469 3.250612,6.62531 1,8.87469 l 0,-4.5 z"/></svg></i>',
-      css: '@media all{.note-editable .page-break{position:relative;display:block;width:100%;height:1px;background-color:#ddd;margin:15px 0;}.note-editable .page-break:after{content:"Page-Break";position:absolute;width:100%;height:20px;top:-10px;color:#ddd;-webkit-text-shadow:0 0 5px #fff,0 0 5px #fff,0 0 5px #fff,0 0 5px #fff;-moz-text-shadow:0 0 5px #fff,0 0 5px #fff,0 0 5px #fff,0 0 5px #fff;text-shadow:0 0 5px #fff,0 0 5px #fff,0 0 5px #fff,0 0 5px #fff;text-align:center;}}@media print{.note-editable .page-break{display:block;page-break-before:always;}}'
-    }
-  });
-  $.extend($.summernote.plugins, {
-    'pagebreak': function(context) {
-      var ui      = $.summernote.ui;
-      var options = context.options;
-      var lang    = options.langInfo;
-      $("head").append('<style>' + options.pagebreak.css + '</style>');
-      context.memo('button.pagebreak',function() {
-        var button = ui.button({
-          contents: options.pagebreak.icon,
-          tooltip:  lang.pagebreak.tooltip,
-          container: 'body',
-          click: function (e) {
-            e.preventDefault();
-            if (getSelection().rangeCount > 0) {
-              var el = getSelection().getRangeAt(0).commonAncestorContainer.parentNode;
-              if ($(el).hasClass('note-editable')) {
-                el = getSelection().getRangeAt(0).commonAncestorContainer;
-              }
-              if (!$(el).hasClass('page-break')) {
-                if ($(el).next('div.page-break').length < 1)
-                  $('<div class="page-break"></div>').insertAfter(el);
-              }
-            } else {
-              if ($('.note-editable div').last().attr('class') !== 'page-break')
-                $('.note-editable').append('<div class="page-break"></div>');
-            }
-
-            // Launching this method to force Summernote sync it's content with the bound textarea element
-            context.invoke('editor.insertText','');
-          }
-        });
-        return button.render();
-      });
-    }
-  });
+}(function ($) {
+    $.extend($.summernote.options, {
+        findnreplace: {
+            classHidden: 'note-display-none',
+            icon:      '<i class="fas fa-search"></i>'
+        }
+    });
+    $.extend($.summernote.plugins, {
+        'findnreplace': function (context) {
+            var ui       = $.summernote.ui,
+                $note    = context.layoutInfo.note,
+                $editor  = context.layoutInfo.editor,
+                $toolbar = context.layoutInfo.toolbar,
+                options  = context.options,
+                lang     = options.langInfo,
+                interface = $.summernote.interface;
+            context.memo('button.findnreplace', function() {
+                var button = ui.button({
+                    contents: options.findnreplace.icon,
+                    container: options.container,
+                    tooltip:  lang.findnreplace.tooltip,
+                    placement: options.placement,
+                    className:'hide-icons-toolbar',
+                    click: function (e) {
+                        e.preventDefault();
+                        $editor.find('.note-findnreplace').contents().unwrap('mark');
+                        $('#findnreplaceToolbar').toggleClass(options.findnreplace.classHidden);
+                        $('.note-status-output').text('');
+                        if ($note.summernote('createRange').toString()) {
+                            var selected = $note.summernote('createRange').toString();
+                            $('#note-findnreplace-find').val(selected);
+                        }
+                    }
+                });
+                return button.render();
+            });
+            this.initialize = function () {
+                var fnrBody =
+                    '<div id="findnreplaceToolbar" class="note-display-none">' +
+                    '<div class="note-form-group">' +
+                    '<input id="note-findnreplace-find" type="text" class="note-findnreplace-find note-input" value="" placeholder="' + lang.findnreplace.findPlaceholder + '">' +
+                    '<button class="note-findnreplace-find-btn note-btn btn btn-light btn-sm">' + lang.findnreplace.findBtn + '</button>' +
+                    '</div>' +
+                    '<div class="note-form-group">' +
+                    '<input id="note-findnreplace-replace" type="text" class="note-findnreplace-replace note-input" value="" placeholder="' + lang.findnreplace.replacePlaceholder + '">' +
+                    '<button class="note-findnreplace-replace-btn btn btn-default note-btn btn btn-light btn-sm">' + lang.findnreplace.replaceBtn + '</button>' +
+                    '</div>' +
+                    '</div>';
+                $('.note-toolbar').append(fnrBody);
+                this.show();
+            };
+            this.findnreplace = function() {
+                var $fnrFindBtn    = $('.note-findnreplace-find-btn');
+                var $fnrReplaceBtn = $('.note-findnreplace-replace-btn');
+                $fnrFindBtn.click(function (e) {
+                    e.preventDefault();
+                    $editor.find('.note-findnreplace').contents().unwrap('mark');
+                    var fnrCode    = context.invoke('code');
+                    var fnrFind    = $('.note-findnreplace-find').val();
+                    var fnrReplace = $('.note-findnreplace-replace').val();
+                    var fnrCount   = (fnrCode.match(new RegExp(fnrFind + "(?![^<>]*>)", "gi")) || []).length
+                    if (fnrFind) {
+                        $('.note-status-output').text(fnrCount + lang.findnreplace.findResult + "`" + fnrFind + "`");
+                        var fnrReplaced = fnrCode.replace(new RegExp(fnrFind + "(?![^<>]*>)", "gi"), function(e){return '<mark class="note-findnreplace">' + e + '</mark>';});
+                        $note.summernote('code',fnrReplaced);
+                    } else
+                        $('.note-status-output').html(lang.findnreplace.findError);
+                });
+                $fnrReplaceBtn.click(function (e) {
+                    e.preventDefault();
+                    $editor.find('.note-findnreplace').contents().unwrap('mark');
+                    var fnrCode    = context.invoke('code');
+                    var fnrFind    = $('.note-findnreplace-find').val();
+                    var fnrReplace = $('.note-findnreplace-replace').val();
+                    var fnrCount   = (fnrCode.match(new RegExp(fnrFind, "gi")) || []).length
+                    if (fnrFind) {
+                        $('.note-status-output').text(fnrCount + lang.findnreplace.findResult + "`" + fnrFind + "`" + lang.findnreplace.replaceResult +"`" + fnrReplace + "`");
+                        var fnrReplaced = fnrCode.replace(new RegExp(fnrFind + "(?![^<>]*>)", "gi"), fnrReplace);
+                        $note.summernote('code', fnrReplaced);
+                    } else {
+                        if (fnrReplace) {
+                            if ($note.summernote('createRange').toString()) {
+                                $note.summernote('insertText',fnrReplace);
+                                $('.note-status-output').text('');
+                            } else
+                                $('.note-status-output').html(lang.findnreplace.noneSelected);
+                        } else
+                            $('.note-status-output').html(lang.findnreplace.replaceError);
+                    }
+                });
+            };
+            this.show = function() {
+                this.findnreplace();
+            };
+        }
+    });
 }));
